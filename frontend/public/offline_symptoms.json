@@ -1,0 +1,77 @@
+{
+  "migraine": {
+    "keywords": ["headache", "pain", "nausea", "light"],
+    "condition": "Migraine (Offline Prediction)",
+    "recommendation": "Rest in a dark room. Take pain relief. Consult a doctor if severe."
+  },
+  "cold": {
+    "keywords": ["cough", "sneeze", "runny", "nose", "fever"],
+    "condition": "Common Cold (Offline Prediction)",
+    "recommendation": "Stay hydrated, rest. Consult a doctor if it lasts more than 7 days."
+  },
+  "allergy": {
+    "keywords": ["itchy", "rash", "red", "spots"],
+    "condition": "Allergic Reaction (Offline Prediction)",
+    "recommendation": "Consider antihistamines. If breathing is difficult, seek emergency care immediately."
+  },
+  "sprain": {
+    "keywords": ["swollen", "leg", "arm", "twisted", "ankle"],
+    "condition": "Physical Sprain (Offline Prediction)",
+    "recommendation": "Apply ICE (Ice, Compression, Elevation). Do not move it."
+  },
+  "fever": {
+    "keywords": ["high temperature", "fever", "chills", "sweating"],
+    "condition": "Fever (Possible Infection)",
+    "recommendation": "Stay hydrated, take paracetamol. Seek medical help if fever exceeds 3 days."
+  },
+  "food_poisoning": {
+    "keywords": ["vomiting", "diarrhea", "stomach pain", "nausea"],
+    "condition": "Food Poisoning (Offline Prediction)",
+    "recommendation": "Drink ORS, stay hydrated. Consult doctor if severe dehydration occurs."
+  },
+  "gastritis": {
+    "keywords": ["burning stomach", "acidity", "bloating", "burping"],
+    "condition": "Gastritis / Acid Reflux",
+    "recommendation": "Avoid spicy food. Eat small meals. Take antacids if needed."
+  },
+  "dehydration": {
+    "keywords": ["dry mouth", "thirst", "dizziness", "fatigue"],
+    "condition": "Dehydration",
+    "recommendation": "Drink plenty of water or ORS. Seek care if symptoms worsen."
+  },
+  "asthma": {
+    "keywords": ["shortness of breath", "wheezing", "chest tightness"],
+    "condition": "Asthma Attack (Possible)",
+    "recommendation": "Use inhaler immediately. Seek emergency help if breathing is severe."
+  },
+  "covid": {
+    "keywords": ["fever", "cough", "loss of taste", "loss of smell", "fatigue"],
+    "condition": "COVID-19 (Possible)",
+    "recommendation": "Isolate yourself. Get tested. Consult a doctor if symptoms worsen."
+  },
+  "diabetes": {
+    "keywords": ["frequent urination", "increased thirst", "fatigue", "blurred vision"],
+    "condition": "Diabetes (Possible)",
+    "recommendation": "Check blood sugar levels. Consult a doctor for diagnosis."
+  },
+  "hypertension": {
+    "keywords": ["high blood pressure", "headache", "dizziness", "blurred vision"],
+    "condition": "Hypertension (Possible)",
+    "recommendation": "Reduce salt intake. Monitor BP regularly. Consult a doctor."
+  },
+  "anemia": {
+    "keywords": ["fatigue", "pale skin", "weakness", "shortness of breath"],
+    "condition": "Anemia (Possible)",
+    "recommendation": "Increase iron-rich foods. Consult doctor for blood test."
+  },
+  "urinary_infection": {
+    "keywords": ["burning urination", "frequent urination", "pelvic pain"],
+    "condition": "Urinary Tract Infection (UTI)",
+    "recommendation": "Drink water. Consult doctor for antibiotics."
+  },
+  "depression": {
+    "keywords": ["sad", "hopeless", "tired", "loss of interest"],
+    "condition": "Depression (Possible)",
+    "recommendation": "Talk to someone you trust. Seek professional mental health support."
+  }
+}
