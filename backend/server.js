@@ -23,7 +23,11 @@ const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
 
 app.use(cors());
+
+// ---- ROOT + HEALTH ROUTES (for testing / uptime monitor) ---- //
+app.get('/', (req, res) => res.json({ message: 'Telemedicine backend is running' }));
 app.get('/health', (req, res) => res.status(200).send('OK'));
+
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -50,17 +54,17 @@ app.post('/api/auth/register', async (req, res) => {
     try {
         const { name, email, password, role, language } = req.body;
         const hash = await bcrypt.hash(password, 10);
-        
+
         const validRoles = ['Patient', 'Doctor', 'Pharmacy', 'Admin'];
         const finalRole = validRoles.includes(role) ? role : 'Patient';
-        
+
         let patientId = undefined;
         if (finalRole === 'Patient') {
             patientId = 'PAT-' + Math.floor(100000 + Math.random() * 900000);
         }
 
         const user = await User.create({ name, email, password: hash, role: finalRole, language: language || 'en', patientId });
-        
+
         // Output userId as string for frontend compatibility if needed
         res.status(201).json({ message: 'User registered successfully', userId: user._id.toString(), patientId: user.patientId });
     } catch (err) {
@@ -73,12 +77,12 @@ app.post('/api/auth/login', async (req, res) => {
     try {
         const { email, password } = req.body;
         const user = await User.findOne({ email });
-        
+
         if (!user) return res.status(404).json({ error: 'USER_NOT_FOUND' });
-        
+
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(401).json({ error: 'Invalid Password' });
-        
+
         const token = jwt.sign({ id: user._id.toString(), role: user.role, name: user.name, language: user.language, patientId: user.patientId }, JWT_SECRET, { expiresIn: '24h' });
         res.json({ token, user: { id: user._id.toString(), name: user.name, role: user.role, language: user.language, patientId: user.patientId } });
     } catch (err) {
@@ -117,10 +121,10 @@ app.delete('/api/admin/users/:id', authenticateToken, async (req, res) => {
         if (req.params.id === req.user.id) {
             return res.status(400).json({ error: 'You cannot delete your own admin account' });
         }
-        
+
         const result = await User.findByIdAndDelete(req.params.id);
         if (!result) return res.status(404).json({ error: 'User not found' });
-        
+
         res.json({ message: 'User deleted successfully' });
     } catch (err) {
         res.status(500).json({ error: 'Database error' });
@@ -164,18 +168,18 @@ app.post('/api/prescriptions', authenticateToken, async (req, res) => {
     try {
         const { patient_id, medicines, dosage } = req.body;
         if (!patient_id) return res.status(400).json({ error: 'Requires a patient_id' });
-        
+
         // Lookup actual ObjectId using short patientId
         const pUser = await User.findOne({ patientId: patient_id, role: 'Patient' });
         if (!pUser) {
             return res.status(404).json({ error: 'Invalid Patient ID. No patient found with ID: ' + patient_id });
         }
 
-        const p = await Prescription.create({ 
-            patient_id: new mongoose.Types.ObjectId(pUser._id), 
-            doctor_name: req.user.name, 
-            medicines, 
-            dosage 
+        const p = await Prescription.create({
+            patient_id: new mongoose.Types.ObjectId(pUser._id),
+            doctor_name: req.user.name,
+            medicines,
+            dosage
         });
         res.json({ message: 'Prescription added', id: p._id.toString() });
     } catch (err) {
@@ -188,7 +192,7 @@ app.get('/api/prescriptions', authenticateToken, async (req, res) => {
     try {
         const query = req.user.role === 'Patient' ? { patient_id: req.user.id } : {};
         const prescriptions = await Prescription.find(query).populate('patient_id', 'patientId name').lean();
-        
+
         const mapped = prescriptions.map(p => ({
             ...p,
             patient_id_short: p.patient_id?.patientId || p.patient_id?.name || 'Unknown',
@@ -205,7 +209,7 @@ app.get('/api/health-records', authenticateToken, async (req, res) => {
     try {
         const query = req.user.role === 'Patient' ? { patient_id: req.user.id } : {};
         const records = await HealthRecord.find(query).populate('patient_id', 'patientId name').lean();
-        
+
         const mapped = records.map(r => ({
             ...r,
             patient_id_short: r.patient_id?.patientId || r.patient_id?.name || 'Unknown',
@@ -224,7 +228,7 @@ app.post('/api/health-records', authenticateToken, upload.single('file'), async 
 
         const { details, patient_id } = req.body;
         const doctor_id = req.user.role === 'Doctor' ? req.user.id : null;
-        
+
         let actualPatientId = req.user.id;
         if (req.user.role === 'Doctor' && patient_id) {
             // Find patient by PAT-ID
@@ -253,8 +257,8 @@ app.post('/api/health-records', authenticateToken, upload.single('file'), async 
         res.status(201).json(h);
     } catch (err) {
         console.error("Health Record Upload Error:", err);
-        res.status(500).json({ 
-            error: 'Server error during upload', 
+        res.status(500).json({
+            error: 'Server error during upload',
             details: err.message,
             stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
         });
@@ -281,9 +285,9 @@ app.post('/api/pharmacy/profile', authenticateToken, async (req, res) => {
     try {
         const { name, address, latitude, longitude } = req.body;
         if (!name || !address) return res.status(400).json({ error: 'Name and address are required' });
-        
+
         const coords = (latitude && longitude) ? [parseFloat(longitude), parseFloat(latitude)] : [0, 0];
-        
+
         let pharmacy = await Pharmacy.findOne({ owner_id: req.user.id });
         if (pharmacy) {
             pharmacy.name = name;
@@ -320,9 +324,9 @@ app.get('/api/pharmacy/inventory', authenticateToken, async (req, res) => {
     try {
         if (req.user.role === 'Pharmacy') {
             const inventory = await PharmacyInventory.find({ pharmacy_user_id: req.user.id });
-            const output = inventory.map(i => ({ 
-                id: i._id.toString(), 
-                medicine_name: i.medicine_name, 
+            const output = inventory.map(i => ({
+                id: i._id.toString(),
+                medicine_name: i.medicine_name,
                 dosage: i.dosage,
                 status: i.status,
                 price: i.price || 0,
@@ -335,7 +339,7 @@ app.get('/api/pharmacy/inventory', authenticateToken, async (req, res) => {
             // Patient/Doctor Search functionality
             const { lat, lng } = req.query;
             let pharmacies = [];
-            
+
             if (lat && lng && !isNaN(parseFloat(lat)) && !isNaN(parseFloat(lng))) {
                 pharmacies = await Pharmacy.aggregate([
                     {
@@ -392,14 +396,14 @@ app.get('/api/pharmacy/inventory', authenticateToken, async (req, res) => {
 
             // If we have geospatial sort from mongo, sort `data` so the closest ones appear first.
             if (lat && lng) {
-                 const orderMap = {};
-                 pharmacies.forEach((p, idx) => orderMap[p.owner_id.toString()] = idx);
-                 
-                 data.sort((a, b) => {
-                     const idxA = orderMap[invOwnerId(inventories, a.id)] ?? 999;
-                     const idxB = orderMap[invOwnerId(inventories, b.id)] ?? 999;
-                     return idxA - idxB;
-                 });
+                const orderMap = {};
+                pharmacies.forEach((p, idx) => orderMap[p.owner_id.toString()] = idx);
+
+                data.sort((a, b) => {
+                    const idxA = orderMap[invOwnerId(inventories, a.id)] ?? 999;
+                    const idxB = orderMap[invOwnerId(inventories, b.id)] ?? 999;
+                    return idxA - idxB;
+                });
             }
 
             res.json(data);
@@ -415,7 +419,7 @@ app.get('/api/public/medicines', async (req, res) => {
     try {
         const { lat, lng, search } = req.query;
         let pharmacies = [];
-        
+
         if (lat && lng && !isNaN(parseFloat(lat)) && !isNaN(parseFloat(lng))) {
             pharmacies = await Pharmacy.aggregate([
                 {
@@ -535,10 +539,10 @@ app.post('/api/pharmacy/inventory', authenticateToken, async (req, res) => {
     if (req.user.role !== 'Pharmacy') return res.status(403).json({ error: 'Allowed only for Pharmacy role' });
     try {
         const { medicine_name, dosage, status, price, quantity, description, category } = req.body;
-        const inv = await PharmacyInventory.create({ 
-            pharmacy_user_id: req.user.id, 
-            medicine_name, 
-            dosage, 
+        const inv = await PharmacyInventory.create({
+            pharmacy_user_id: req.user.id,
+            medicine_name,
+            dosage,
             status,
             price: price || 0,
             quantity: quantity || 0,
@@ -559,7 +563,7 @@ app.put('/api/pharmacy/inventory/:id', authenticateToken, async (req, res) => {
         if (status !== undefined) updateFields.status = status;
         if (price !== undefined) updateFields.price = price;
         if (quantity !== undefined) updateFields.quantity = quantity;
-        
+
         const result = await PharmacyInventory.findOneAndUpdate(
             { _id: req.params.id, pharmacy_user_id: req.user.id },
             updateFields,
@@ -591,10 +595,10 @@ app.post('/api/orders', authenticateToken, async (req, res) => {
 
         // Look up pharmacy details
         const pharmacy = await Pharmacy.findOne({ owner_id: pharmacy_user_id });
-        
+
         let total = 0;
         const orderItems = [];
-        
+
         for (const item of items) {
             const med = await PharmacyInventory.findById(item.medicine_id);
             if (!med) continue;
@@ -743,13 +747,13 @@ function invOwnerId(inven, invId) {
 
 // ---- WEBRTC SIGNALING (SOCKET.IO) ---- //
 io.on('connection', (socket) => {
-    console.log('User connected to WebRTC sigaling:', socket.id);
-    
+    console.log('User connected to WebRTC signaling:', socket.id);
+
     socket.on('join-room', (roomId, userId) => {
         socket.join(roomId);
         console.log(`User ${userId} joined room ${roomId}`);
         socket.to(roomId).emit('user-connected', userId);
-        
+
         socket.on('offer', (offer, toId) => {
             socket.to(roomId).emit('offer', offer, userId);
         });
@@ -771,14 +775,15 @@ io.on('connection', (socket) => {
 // Global error handler
 app.use((err, req, res, next) => {
     console.error('Unhandled Error:', err);
-    res.status(500).json({ 
-        error: 'Internal Server Error', 
+    res.status(500).json({
+        error: 'Internal Server Error',
         details: err.message,
         stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
     });
 });
 
+// Railway/Render give the port in process.env.PORT
 const PORT = process.env.PORT || 5005;
-server.listen(PORT, () => {
-    console.log(`Backend server running on http://localhost:${PORT}`);
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`Backend server running on port ${PORT}`);
 });
